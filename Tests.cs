@@ -115,6 +115,10 @@ namespace LocalSubtitleGui
                 Check(start.Text == "开始生成字幕", "主按钮文字明确");
                 Check(components.Text == "检查运行组件", "组件按钮文字明确");
                 Check(models.Items.Count == 3 && models.SelectedIndex == 1, "默认推荐 Small 模型");
+                Check(models.Parent is Panel && models.Parent.Padding.All == 1, "模型下拉框具有可见边框");
+                Check(GetField<ComboBox>(form, "languageBox").Parent is Panel, "语言下拉框具有可见边框");
+                Check(GetField<NumericUpDown>(form, "threadsBox").Parent is Panel, "CPU线程输入框具有可见边框");
+                Check(GetField<TextBox>(form, "fileBox").Multiline && GetField<TextBox>(form, "fileBox").Height >= 50, "音视频拖放框高度充足");
                 Check(GetField<CheckBox>(form, "srtBox").Checked, "默认生成 SRT");
                 Check(GetField<CheckBox>(form, "txtBox").Checked, "默认生成 TXT");
                 Check(!GetField<CheckBox>(form, "vttBox").Checked, "VTT 默认不勾选");

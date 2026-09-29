@@ -72,8 +72,8 @@ namespace LocalSubtitleGui
             ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
             Text = "本地音视频转字幕 · MVP v0.1";
             Icon = SystemIcons.Application;
-            MinimumSize = new Size(820, 690);
-            Size = new Size(980, 780);
+            MinimumSize = new Size(820, 740);
+            Size = new Size(980, 820);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Color.FromArgb(236, 242, 248);
             Padding = new Padding(14);
@@ -96,8 +96,8 @@ namespace LocalSubtitleGui
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 47));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 43));
@@ -119,7 +119,7 @@ namespace LocalSubtitleGui
             var subtitle = MakeLabel("文件只在本机处理。无需显卡，也不上传音视频内容。");
             subtitle.ForeColor = Color.FromArgb(90, 108, 132);
             root.Controls.Add(subtitle, 0, 1);
-            root.Controls.Add(MakeLabel("音视频文件（可直接拖入窗口）"), 0, 2);
+            root.Controls.Add(MakeLabel("音视频文件（可点击选择，也可拖放到下方区域）"), 0, 2);
 
             var fileRow = new TableLayoutPanel();
             fileRow.Dock = DockStyle.Fill;
@@ -127,49 +127,52 @@ namespace LocalSubtitleGui
             fileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             fileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
             fileBox.Dock = DockStyle.Fill;
+            fileBox.Margin = new Padding(0, 2, 0, 4);
             fileBox.BorderStyle = BorderStyle.FixedSingle;
             fileBox.BackColor = Color.FromArgb(250, 252, 255);
+            fileBox.Multiline = true;
+            fileBox.ScrollBars = ScrollBars.Vertical;
+            fileBox.WordWrap = false;
             fileBox.AllowDrop = true;
             fileBox.DragEnter += OnDragEnter;
             fileBox.DragDrop += OnDragDrop;
             fileBox.TextChanged += (s, e) => UpdateSavePreview();
             fileRow.Controls.Add(fileBox, 0, 0);
             ConfigureButton(browseFileButton, "选择文件", Color.FromArgb(231, 238, 248), Color.FromArgb(33, 53, 77));
-            browseFileButton.Margin = new Padding(8, 0, 0, 0);
+            browseFileButton.Dock = DockStyle.Fill;
+            browseFileButton.Margin = new Padding(10, 18, 0, 20);
             browseFileButton.Click += (s, e) => BrowseInputFile();
             fileRow.Controls.Add(browseFileButton, 1, 0);
             root.Controls.Add(fileRow, 0, 3);
 
             var options = new TableLayoutPanel();
             options.Dock = DockStyle.Fill;
-            options.ColumnCount = 6;
-            options.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76));
-            options.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            options.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76));
-            options.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            options.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76));
-            options.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            options.RowCount = 2;
-            options.RowStyles.Add(new RowStyle(SizeType.Absolute, 25));
-            options.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-            options.Controls.Add(MakeLabel("识别语言"), 0, 0);
-            options.Controls.Add(MakeLabel("识别模型"), 2, 0);
-            options.Controls.Add(MakeLabel("CPU线程"), 4, 0);
+            options.ColumnCount = 3;
+            options.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
+            options.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
+            options.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 24));
+            options.RowCount = 1;
+            options.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             ConfigureCombo(languageBox);
             languageBox.Items.AddRange(new object[] { "自动识别", "中文", "English", "日本語", "한국어", "粤语" });
             languageBox.SelectedIndex = 0;
-            options.Controls.Add(languageBox, 1, 1);
+            options.Controls.Add(CreateOptionField("识别语言", languageBox,
+                new Padding(0, 0, 12, 4)), 0, 0);
             ConfigureCombo(modelBox);
             foreach (ModelDefinition model in ComponentInstaller.Models) modelBox.Items.Add(model.DisplayName);
             modelBox.SelectedIndex = 1;
             modelBox.SelectedIndexChanged += (s, e) => UpdateModelTip();
-            options.Controls.Add(modelBox, 3, 1);
-            threadsBox.Dock = DockStyle.Fill;
+            options.Controls.Add(CreateOptionField("识别模型", modelBox,
+                new Padding(4, 0, 12, 4)), 1, 0);
             threadsBox.Minimum = 1;
             threadsBox.Maximum = 64;
             threadsBox.Value = Math.Max(1, Math.Min(8, Environment.ProcessorCount > 2 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount));
             threadsBox.TextAlign = HorizontalAlignment.Center;
-            options.Controls.Add(threadsBox, 5, 1);
+            threadsBox.BorderStyle = BorderStyle.None;
+            threadsBox.BackColor = Color.White;
+            threadsBox.ForeColor = Color.FromArgb(33, 53, 77);
+            options.Controls.Add(CreateOptionField("CPU线程", threadsBox,
+                new Padding(4, 0, 0, 4)), 2, 0);
             root.Controls.Add(options, 0, 4);
 
             var formats = new FlowLayoutPanel();
@@ -291,6 +294,41 @@ namespace LocalSubtitleGui
             box.DropDownStyle = ComboBoxStyle.DropDownList;
             box.Dock = DockStyle.Fill;
             box.FlatStyle = FlatStyle.Flat;
+            box.BackColor = Color.White;
+            box.ForeColor = Color.FromArgb(33, 53, 77);
+            box.Margin = new Padding(0);
+        }
+
+        private static Control CreateOptionField(string title, Control input, Padding margin)
+        {
+            var field = new TableLayoutPanel();
+            field.Dock = DockStyle.Fill;
+            field.Margin = margin;
+            field.ColumnCount = 1;
+            field.RowCount = 2;
+            field.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+            field.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+
+            Label label = MakeLabel(title);
+            label.Margin = new Padding(0);
+            field.Controls.Add(label, 0, 0);
+
+            var border = new Panel();
+            border.Dock = DockStyle.Top;
+            border.Height = 31;
+            border.Margin = new Padding(0);
+            border.Padding = new Padding(1);
+            border.BackColor = Color.White;
+            border.Paint += (s, e) =>
+            {
+                using (var pen = new Pen(Color.FromArgb(145, 163, 185)))
+                    e.Graphics.DrawRectangle(pen, 0, 0, border.ClientSize.Width - 1, border.ClientSize.Height - 1);
+            };
+            input.Dock = DockStyle.Fill;
+            input.Margin = new Padding(0);
+            border.Controls.Add(input);
+            field.Controls.Add(border, 0, 1);
+            return field;
         }
 
         private static void ConfigureCheckBox(CheckBox box, string text, bool value)
