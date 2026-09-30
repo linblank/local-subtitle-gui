@@ -26,6 +26,12 @@ namespace LocalSubtitleGui
             Check(ComponentInstaller.Models[0].FileName == "ggml-base.bin", "Base 模型映射");
             Check(ComponentInstaller.Models[1].FileName == "ggml-small.bin", "Small 模型映射");
             Check(ComponentInstaller.Models[2].FileName == "ggml-medium.bin", "Medium 模型映射");
+            Check(MainForm.LanguageCodeForIndex(0) == "auto", "自动识别语言映射");
+            Check(MainForm.LanguageCodeForIndex(1) == "zh", "中文语言映射");
+            Check(MainForm.LanguageCodeForIndex(2) == "en", "英文语言映射");
+            Check(MainForm.LanguageCodeForIndex(3) == "ja", "日文语言映射");
+            Check(MainForm.LanguageCodeForIndex(4) == "ko", "韩文语言映射");
+            Check(MainForm.LanguageCodeForIndex(5) == "zh", "粤语使用旧模型中文兼容映射");
             foreach (ModelDefinition model in ComponentInstaller.Models)
             {
                 Check(model.Url.StartsWith("https://huggingface.co/ggerganov/whisper.cpp/", StringComparison.Ordinal), "模型使用项目列出的 HTTPS 仓库");
@@ -47,6 +53,10 @@ namespace LocalSubtitleGui
             string englishArgs = MainForm.BuildWhisperArguments(
                 "input.wav", "result", "model.bin", "en", 4, new[] { ".srt" });
             Check(englishArgs.Contains("-ml 28") && englishArgs.Contains("-sow"), "英文按单词切分");
+
+            string cantoneseArgs = MainForm.BuildWhisperArguments(
+                "input.wav", "result", "model.bin", "yue", 4, new[] { ".srt" });
+            Check(cantoneseArgs.Contains("-l zh") && !cantoneseArgs.Contains("-l yue"), "旧模型阻止不兼容的粤语 token");
 
             string longSrt = "1\r\n00:00:00,000 --> 00:00:26,000\r\n" +
                 "那么有几个注意点给大家讲一下,我们这个网址的话它每次会进行改变,每次都不一样,所以每次生成的话都会是一个新的网址。\r\n";
@@ -112,9 +122,11 @@ namespace LocalSubtitleGui
                 Button start = GetField<Button>(form, "startButton");
                 Button components = GetField<Button>(form, "componentsButton");
                 ComboBox models = GetField<ComboBox>(form, "modelBox");
+                ComboBox languages = GetField<ComboBox>(form, "languageBox");
                 Check(start.Text == "开始生成字幕", "主按钮文字明确");
                 Check(components.Text == "检查运行组件", "组件按钮文字明确");
                 Check(models.Items.Count == 3 && models.SelectedIndex == 1, "默认推荐 Small 模型");
+                Check(languages.Items.Count == 6 && languages.Items[5].ToString().Contains("兼容模式"), "粤语选项说明兼容模式");
                 Check(models.Parent is Panel && models.Parent.Padding.All == 1, "模型下拉框具有可见边框");
                 Check(GetField<ComboBox>(form, "languageBox").Parent is Panel, "语言下拉框具有可见边框");
                 Check(GetField<NumericUpDown>(form, "threadsBox").Parent is Panel, "CPU线程输入框具有可见边框");

@@ -154,8 +154,9 @@ namespace LocalSubtitleGui
             options.RowCount = 1;
             options.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             ConfigureCombo(languageBox);
-            languageBox.Items.AddRange(new object[] { "自动识别", "中文", "English", "日本語", "한국어", "粤语" });
+            languageBox.Items.AddRange(new object[] { "自动识别", "中文", "English", "日本語", "한국어", "粤语（兼容模式）" });
             languageBox.SelectedIndex = 0;
+            tips.SetToolTip(languageBox, "Base、Small、Medium 的粤语兼容模式使用中文（zh）语言标记识别。粤语专用 yue 标记需要 Large-v3。 ");
             options.Controls.Add(CreateOptionField("识别语言", languageBox,
                 new Padding(0, 0, 12, 4)), 0, 0);
             ConfigureCombo(modelBox);
@@ -437,13 +438,21 @@ namespace LocalSubtitleGui
 
         private string SelectedLanguageCode()
         {
-            switch (languageBox.SelectedIndex)
+            return LanguageCodeForIndex(languageBox.SelectedIndex);
+        }
+
+        internal static string LanguageCodeForIndex(int selectedIndex)
+        {
+            switch (selectedIndex)
             {
                 case 1: return "zh";
                 case 2: return "en";
                 case 3: return "ja";
                 case 4: return "ko";
-                case 5: return "yue";
+                // A dedicated Cantonese language token was introduced by Large-v3.
+                // The Base, Small and Medium models offered by this app predate it
+                // and transcribe Cantonese through the Chinese language token.
+                case 5: return "zh";
                 default: return "auto";
             }
         }
@@ -513,12 +522,14 @@ namespace LocalSubtitleGui
 
             int threads = (int)threadsBox.Value;
             string language = SelectedLanguageCode();
+            bool cantoneseCompatibility = languageBox.SelectedIndex == 5;
             ThreadPool.QueueUserWorkItem(_ => PrepareAndRun(appDir, input, outputFolder,
-                extensions, model, language, threads));
+                extensions, model, language, threads, cantoneseCompatibility));
         }
 
         private void PrepareAndRun(string appDir, string input, string outputFolder,
-            string[] extensions, ModelDefinition model, string language, int threads)
+            string[] extensions, ModelDefinition model, string language, int threads,
+            bool cantoneseCompatibility)
         {
             string tempDir = Path.Combine(appDir, ".runtime-temp", Guid.NewGuid().ToString("N"));
             try
@@ -538,6 +549,8 @@ namespace LocalSubtitleGui
                 AppendLogThreadSafe("输入文件：" + input);
                 AppendLogThreadSafe("识别模型：" + model.DisplayName);
                 AppendLogThreadSafe("识别语言：" + language + "；CPU线程：" + threads);
+                if (cantoneseCompatibility)
+                    AppendLogThreadSafe("粤语兼容模式：Base、Small、Medium 使用中文（zh）语言标记识别；不会传入 Large-v3 专用的 yue 标记。");
                 RunFfmpeg(appDir, input, wav);
                 if (cancelling) throw new OperationCanceledException();
 
@@ -651,6 +664,10 @@ namespace LocalSubtitleGui
         internal static string BuildWhisperArguments(string wav, string outputBase,
             string modelPath, string language, int threads, string[] extensions)
         {
+            // Defensive compatibility for callers using the GUI's three pre-v3
+            // models. Passing yue to these vocabularies can produce question marks.
+            if (String.Equals(language, "yue", StringComparison.OrdinalIgnoreCase))
+                language = "zh";
             var args = new StringBuilder();
             args.Append("-m ").Append(Quote(modelPath));
             args.Append(" -f ").Append(Quote(wav));
